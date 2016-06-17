@@ -5,6 +5,7 @@ package DnsSwift2Kifer;
  */
 public class Tester1 {
     public static void main(String [] args){
-        System.out.println("THis is the first line of the java file.");
+        Lookuper myLookuper = new Lookuper("10.76.1.52", "app1.testglb.com");
+
     }
 }
