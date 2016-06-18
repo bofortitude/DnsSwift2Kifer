@@ -5,7 +5,10 @@ package DnsSwift2Kifer;
  */
 public class Tester1 {
     public static void main(String [] args){
-        Lookuper myLookuper = new Lookuper("10.76.1.52", "app1.testglb.com");
+        Lookuper myLookuper = new Lookuper("8.8.8.8", "www.google.com");
+        myLookuper.setRecordType("A");
+        myLookuper.setTcpEnable(true);
+        myLookuper.send();
 
     }
 }

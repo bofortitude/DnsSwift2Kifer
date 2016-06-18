@@ -14,9 +14,7 @@ public class tt {
         System.out.println(Flags.value("RD"));
         System.out.println(Flags.value("AD"));
         System.out.println(Flags.value("CD"));
-        int bb = 10;
-        bb |= 7;
-        System.out.println(bb);
-        System.out.println(Flags.string(100));
+
+
     }
 }

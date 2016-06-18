@@ -5,6 +5,8 @@ package DnsSwift2Kifer;
  */
 
 import org.xbill.DNS.*;
+
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
@@ -25,6 +27,7 @@ public class Lookuper {
     private boolean requestFlagAA = false;
     private boolean requestFlagAD = false;
     private boolean requestFlagCD = false;
+    private boolean requestWithAdditional = true;
 
 
 
@@ -43,112 +46,49 @@ public class Lookuper {
         this.recordType = recordType;
     }
 
-    public void setDnsServerIp(String dnsServerIp){
-        this.dnsServerIp = dnsServerIp;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
-        }
-        */
-    }
+    public void setDnsServerIp(String dnsServerIp){this.dnsServerIp = dnsServerIp;}
 
-    public void setDnsServerPort(int dnsServerPort){
-        this.dnsServerPort = dnsServerPort;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
-        }
-        */
-    }
+    public void setDnsServerPort(int dnsServerPort){this.dnsServerPort = dnsServerPort;}
 
-    public void setSrcIpAddress(String srcIpAddress){
-        this.srcIpAddress = srcIpAddress;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
-        }
-        */
-    }
+    public void setSrcIpAddress(String srcIpAddress){this.srcIpAddress = srcIpAddress;}
 
-    public void setSrcPort(int srcPort){
-        this.srcPort = srcPort;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
-        }
-        */
-    }
+    public void setSrcPort(int srcPort){this.srcPort = srcPort;}
 
-    public void setDnsTimeout(int dnsTimeout){
-        this.dnsTimeout = dnsTimeout;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setTimeout(this.dnsTimeout);
-        }
-        */
-    }
+    public void setDnsTimeout(int dnsTimeout){this.dnsTimeout = dnsTimeout;}
 
-    public void setTcpEnable(boolean tcpEnable){
-        this.tcpEnable = tcpEnable;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setTCP(this.tcpEnable);
-        }
-        */
-    }
+    public void setTcpEnable(boolean tcpEnable){this.tcpEnable = tcpEnable;}
 
-    public void setIgnoreTruncation(boolean ignoreTruncation){
-        this.ignoreTruncation = ignoreTruncation;
-        /*
-        if (this.myResolver != null){
-            this.myResolver.setIgnoreTruncation(this.ignoreTruncation);
-        }
-        */
-    }
+    public void setIgnoreTruncation(boolean ignoreTruncation){this.ignoreTruncation = ignoreTruncation;}
 
-    public void setDnsQuestion(String dnsQuestion){
-        this.dnsQuestion = dnsQuestion;
-    }
+    public void setDnsQuestion(String dnsQuestion){this.dnsQuestion = dnsQuestion;}
 
-    public void setRequestId(int requestId){
-        this.requestId = requestId;
-    }
+    public void setRequestId(int requestId){this.requestId = requestId;}
 
-    public void setRecordType(String recordType){
-        this.recordType = recordType;
-    }
+    public void setRecordType(String recordType){this.recordType = recordType;}
 
-    public void setRequestDclass(String requestDclass){
-        this.requestDclass = requestDclass;
-    }
+    public void setRequestDclass(String requestDclass){this.requestDclass = requestDclass;}
 
-    public void setRequestFlagRD(boolean requestFlagRD){
-        this.requestFlagRD = requestFlagRD;
-    }
+    public void setRequestFlagRD(boolean requestFlagRD){this.requestFlagRD = requestFlagRD;}
 
-    public void setRequestFlagAA(boolean requestFlagAA){
-        this.requestFlagAA = requestFlagAA;
-    }
+    public void setRequestFlagAA(boolean requestFlagAA){this.requestFlagAA = requestFlagAA;}
 
-    public void setRequestFlagAD(boolean requestFlagAD){
-        this.requestFlagAD = requestFlagAD;
-    }
+    public void setRequestFlagAD(boolean requestFlagAD){this.requestFlagAD = requestFlagAD;}
 
-    public void setRequestFlagCD(boolean requestFlagCD){
-        this.requestFlagCD = requestFlagCD;
-    }
+    public void setRequestFlagCD(boolean requestFlagCD){this.requestFlagCD = requestFlagCD;}
+
+    public void setRequestWithAdditional(boolean requestWithAdditional){this.requestWithAdditional = requestWithAdditional;}
 
     private Record genRecord(){
         try {
             Name domainName = new Name(this.dnsQuestion);
+            if (domainName.isAbsolute() == false){
+                this.dnsQuestion = this.dnsQuestion+".";
+                domainName = new Name(this.dnsQuestion);
+            }
             int myRecordType = Type.value(this.recordType);
-            if (myRecordType == -1){
-                myRecordType = Type.value("A");
-            }
+            if (myRecordType == -1){myRecordType = Type.value("A");}
             int myDclass = DClass.value(this.requestDclass);
-            if (myDclass == -1){
-                myDclass = DClass.value("IN");
-            }
+            if (myDclass == -1){myDclass = DClass.value("IN");}
 
             return Record.newRecord(domainName, myRecordType, myDclass);
 
@@ -178,7 +118,7 @@ public class Lookuper {
         return myHeader;
     }
 
-    private Message genMessage(){
+    public void buildMessage(){
         Message requestMessage;
         if (this.requestId != 0){
             requestMessage = new Message(this.requestId);
@@ -187,15 +127,11 @@ public class Lookuper {
         }
 
         Record myRecord = this.genRecord();
-        if (myRecord == null){return null;}
+        if (myRecord == null){this.requestMessage = null; return;}
         requestMessage.setHeader(this.genHeader());
-        requestMessage.addRecord(myRecord, 0);
-        return requestMessage;
-    }
-
-    public void buildMessage(){
-        Message myMessage = this.genMessage();
-        if (myMessage != null){this.requestMessage = myMessage;}
+        requestMessage.addRecord(myRecord, Section.QUESTION);
+        if (this.requestWithAdditional == true){requestMessage.addRecord(new OPTRecord(4096, 0, 0), Section.ADDITIONAL);}
+        this.requestMessage = requestMessage;
     }
 
     public void buildResolver(){
@@ -208,7 +144,6 @@ public class Lookuper {
             this.myResolver.setTCP(this.tcpEnable);
             this.myResolver.setIgnoreTruncation(this.ignoreTruncation);
 
-
         } catch (UnknownHostException e) {
             e.printStackTrace();
             this.myResolver = null;
@@ -216,9 +151,28 @@ public class Lookuper {
 
     }
 
-    public void send(){
+    public Message send(){
+        if (this.requestMessage == null){this.buildMessage();}
+        if (this.requestMessage == null){
+            BaseFunction.dumpInfoFmt("The Message can't be built !!!");
+            return null;
+        }
 
+        if (this.myResolver == null){this.buildResolver();}
+        if (this.myResolver == null){
+            BaseFunction.dumpInfoFmt("The Resolver can't be built !!!");
+            return null;
+        }
 
+        try {
+
+            System.out.println(this.myResolver.getAddress());
+            Message responseMessage = this.myResolver.send(this.requestMessage);
+            return responseMessage;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
 
     }
 
