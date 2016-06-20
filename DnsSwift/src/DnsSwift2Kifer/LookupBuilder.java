@@ -1,15 +1,17 @@
 package DnsSwift2Kifer;
 
 /**
- * Created by root on 6/16/16.
+ * Created by bofei on 6/19/2016.
+ * Generate Message and Resolver.
  */
 
 import org.xbill.DNS.*;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-public class Lookuper {
+
+public class LookupBuilder {
+
     private String dnsServerIp = null;
     private String dnsQuestion = null;
     private int dnsServerPort = 53;
@@ -29,17 +31,12 @@ public class Lookuper {
     private boolean requestWithAdditional = true;
 
 
-
-    private SimpleResolver myResolver = null;
-    private Message requestMessage =null;
-
-
-    public Lookuper(String dnsServerIp, String dnsQuestion){
+    public LookupBuilder(String dnsServerIp, String dnsQuestion){
         this.dnsServerIp = dnsServerIp;
         this.dnsQuestion = dnsQuestion;
     }
 
-    public Lookuper(String dnsServerIp, String dnsQuestion, String recordType){
+    public LookupBuilder(String dnsServerIp, String dnsQuestion, String recordType){
         this.dnsServerIp = dnsServerIp;
         this.dnsQuestion = dnsQuestion;
         this.recordType = recordType;
@@ -117,7 +114,7 @@ public class Lookuper {
         return myHeader;
     }
 
-    public void buildMessage(){
+    public Message buildMessage(){
         Message requestMessage;
         if (this.requestId != 0){
             requestMessage = new Message(this.requestId);
@@ -126,60 +123,33 @@ public class Lookuper {
         }
 
         Record myRecord = this.genRecord();
-        if (myRecord == null){this.requestMessage = null; return;}
+        if (myRecord == null){return null;}
         requestMessage.setHeader(this.genHeader());
         requestMessage.addRecord(myRecord, Section.QUESTION);
         if (this.requestWithAdditional == true){requestMessage.addRecord(new OPTRecord(4096, 0, 0), Section.ADDITIONAL);}
-        this.requestMessage = requestMessage;
+
+        return requestMessage;
     }
 
-    public void buildResolver(){
+    public Resolver buildResolver(){
         try {
-            if (this.myResolver == null){this.myResolver = new SimpleResolver();}
+            SimpleResolver myResolver;
+            myResolver = new SimpleResolver();
 
-            this.myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
-            this.myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
-            this.myResolver.setTimeout(this.dnsTimeout);
-            this.myResolver.setTCP(this.tcpEnable);
-            this.myResolver.setIgnoreTruncation(this.ignoreTruncation);
+            myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
+            myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
+            myResolver.setTimeout(this.dnsTimeout);
+            myResolver.setTCP(this.tcpEnable);
+            myResolver.setIgnoreTruncation(this.ignoreTruncation);
+
+            return myResolver;
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
-            this.myResolver = null;
-        }
-
-    }
-
-    public Message send(){
-        if (this.requestMessage == null){this.buildMessage();}
-        if (this.requestMessage == null){
-            BaseFunction.dumpInfoFmt("The Message can't be built !!!");
-            return null;
-        }
-
-        if (this.myResolver == null){this.buildResolver();}
-        if (this.myResolver == null){
-            BaseFunction.dumpInfoFmt("The Resolver can't be built !!!");
-            return null;
-        }
-
-        try {
-
-            System.out.println(this.myResolver.getAddress());
-            Message responseMessage = this.myResolver.send(this.requestMessage);
-            return responseMessage;
-        } catch (IOException e) {
-            e.printStackTrace();
             return null;
         }
 
     }
-
 
 
 }
-
-
-
-
-
