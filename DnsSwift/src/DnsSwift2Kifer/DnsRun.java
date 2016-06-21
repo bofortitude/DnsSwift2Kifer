@@ -5,10 +5,9 @@ package DnsSwift2Kifer;
  * The thread to be run.
  */
 
-import org.xbill.DNS.Message;
-import org.xbill.DNS.RRset;
-import org.xbill.DNS.Resolver;
-import org.xbill.DNS.Section;
+import jdk.internal.org.objectweb.asm.*;
+import org.xbill.DNS.*;
+import org.xbill.DNS.Type;
 
 import java.io.IOException;
 
@@ -17,34 +16,63 @@ public class DnsRun implements Runnable {
     Resolver resolver;
     int totalRequests = 1;
     long sleepTime = 1000;
+    String runMode = "Normal";
+    boolean debugMode = false;
 
     public DnsRun(Message requestMessage, Resolver resolver){
         this.requestMessage = requestMessage;
         this.resolver = resolver;
     }
 
-    public DnsRun(Message requestMessage, Resolver resolver, int totalRequests){
-        this.requestMessage = requestMessage;
-        this.resolver = resolver;
-        this.totalRequests = totalRequests;
+    public void setTotalRequests(int totalRequests){this.totalRequests = totalRequests;}
+
+    public void setSleepTime(int sleepTime){this.sleepTime = sleepTime;}
+
+    public void setRunMode(String runMode){
+        if (runMode != "Normal" && runMode != "Statistics"){
+            runMode = "Normal";
+        }
+        this.runMode = runMode;
+    }
+
+    public void setDebugMode(boolean debugMode){this.debugMode=debugMode;}
+
+    private void normalHandleResponse(Message responseMessage){
+        if (responseMessage.getRcode() == Rcode.NOERROR){
+            RRset [] myRRset = responseMessage.getSectionRRsets(Section.ANSWER);
+            for (RRset i: myRRset){
+                System.out.println(Type.string(i.getType()));
+
+
+            }
+        }else {
+
+        }
     }
 
     @Override
     public void run() {
 
-        try {
-
-            for (int i=1; i<=totalRequests; i++){
+        for (int i=1; i<=totalRequests; i++){
+            try {
                 Message responseMessage = this.resolver.send(this.requestMessage);
-                RRset [] myRRset = responseMessage.getSectionRRsets(Section.ANSWER);
-                System.out.println(myRRset[0].first());
-                Thread.sleep(this.sleepTime);
+                if (this.runMode == "Normal"){
+                    this.normalHandleResponse(responseMessage);
+                }else if (this.runMode == "Statistics"){
+
+                }
+
+            } catch (IOException e) {
+                if (this.debugMode == true){e.printStackTrace();}
+                BaseFunction.dumpInfo("The DNS sending meets IOException!");
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            try {
+                Thread.sleep(this.sleepTime);
+            } catch (InterruptedException e) {
+                if (this.debugMode == true){e.printStackTrace();}
+                BaseFunction.dumpInfo("The thread sleep meets InterruptedException!");
+            }
         }
 
     }
