@@ -31,6 +31,7 @@ public class LookupBuilder {
     private boolean requestWithAdditional = true;
 
 
+
     public LookupBuilder(String dnsServerIp, String dnsQuestion){
         this.dnsServerIp = dnsServerIp;
         this.dnsQuestion = dnsQuestion;
