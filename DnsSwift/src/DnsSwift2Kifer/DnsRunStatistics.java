@@ -7,9 +7,7 @@ import org.xbill.DNS.Resolver;
  * Created by bofei on 6/22/2016.
  */
 public class DnsRunStatistics extends DnsRun{
-    public DnsRunStatistics(Message requestMessage, Resolver resolver) {
-        super(requestMessage, resolver);
-    }
+    public DnsRunStatistics(Message requestMessage, Resolver resolver) {super(requestMessage, resolver);}
 
     public void run(){
 

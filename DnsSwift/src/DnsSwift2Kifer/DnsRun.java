@@ -23,7 +23,7 @@ public abstract class DnsRun implements Runnable {
 
     public void setTotalRequests(int totalRequests){this.totalRequests = totalRequests;}
 
-    public void setSleepTime(int sleepTime){this.sleepTime = sleepTime;}
+    public void setSleepTime(long sleepTime){this.sleepTime = sleepTime;}
 
     public void setDebugMode(boolean debugMode){this.debugMode=debugMode;}
 

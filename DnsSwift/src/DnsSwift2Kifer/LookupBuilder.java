@@ -65,6 +65,8 @@ public class LookupBuilder {
 
     public void setRequestDclass(String requestDclass){this.requestDclass = requestDclass;}
 
+    public void setRequestOpcode(String requestOpcode){this.requestOpcode = requestOpcode;}
+
     public void setRequestFlagRD(boolean requestFlagRD){this.requestFlagRD = requestFlagRD;}
 
     public void setRequestFlagAA(boolean requestFlagAA){this.requestFlagAA = requestFlagAA;}
@@ -138,7 +140,9 @@ public class LookupBuilder {
             myResolver = new SimpleResolver();
 
             myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
-            myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
+            if (this.srcIpAddress != "0.0.0.0" || this.srcPort != 0){
+                myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
+            }
             myResolver.setTimeout(this.dnsTimeout);
             myResolver.setTCP(this.tcpEnable);
             myResolver.setIgnoreTruncation(this.ignoreTruncation);
