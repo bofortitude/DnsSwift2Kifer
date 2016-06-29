@@ -66,7 +66,7 @@ public class DnsRunNormal extends DnsRun {
             }
 
             try {
-                Thread.sleep(this.sleepTime);
+                if (i != totalRequests){Thread.sleep(this.sleepTime);}
             } catch (InterruptedException e) {
                 if (this.debugMode == true){e.printStackTrace();}
                 BaseFunction.dumpInfo("The thread sleep meets InterruptedException!");

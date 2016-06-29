@@ -9,12 +9,14 @@ import java.util.List;
 public class HookShutdown extends Thread{
     List<String> cmdList = new ArrayList<String>();
 
-    public void addCmd(String cmd){this.cmdList.add(cmd);}
+    public HookShutdown(List<String> cmdList){
+        this.cmdList = cmdList;
+    }
 
     public void runCmd(){
         Iterator<String> it = this.cmdList.iterator();
         while (it.hasNext()){
-
+            TalkToSystem.runCmd(it.next());
         }
         this.cmdList = new ArrayList<String>();
     }

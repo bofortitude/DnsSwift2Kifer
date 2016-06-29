@@ -1,25 +1,26 @@
 package DnsSwift2Kifer;
 
-import org.xbill.DNS.Type;
-
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by bofei on 6/21/2016.
+ * Created by bofei on 6/28/2016.
  */
 public class TryCode1 {
-
     public static void main(String [] args){
 
-        LookupBuilder abc = null;
-        abc = new LookupBuilder("fds", "fdsa");
-        System.out.println(abc);
-        abc = new LookupBuilder("fds", "fdsa");
-        System.out.println(abc);
+
+        String var = "1.33322";
+        Double.valueOf(var);
+        System.out.println(Double.valueOf(var).getClass());
+        long i = new Double(Double.valueOf(var)*1000).longValue();
+        System.out.println(i);
+
+
+
+
+
 
 
     }
-
 }

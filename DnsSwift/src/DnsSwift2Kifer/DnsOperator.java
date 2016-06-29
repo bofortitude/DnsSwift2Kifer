@@ -1,6 +1,6 @@
 package DnsSwift2Kifer;
 
-import org.omg.PortableServer.LIFESPAN_POLICY_ID;
+
 import org.xbill.DNS.Message;
 import org.xbill.DNS.Resolver;
 
@@ -13,6 +13,9 @@ import java.util.List;
  * Thre main starter.
  */
 public class DnsOperator {
+
+    List<String> cmdList = new ArrayList<String>();
+    public Thread shutdownHookThread = new HookShutdown(cmdList);
 
     private String dnsServerIp = null;
     private String dnsQuestion = null;
@@ -46,6 +49,7 @@ public class DnsOperator {
     public DnsOperator(String dnsServerIp, String dnsQuestion){
         this.dnsServerIp = dnsServerIp;
         this.dnsQuestion = dnsQuestion;
+        Runtime.getRuntime().addShutdownHook(this.shutdownHookThread);
     }
 
     public void setDnsServerPort(int dnsServerPort){this.dnsServerPort = dnsServerPort;}
@@ -92,6 +96,8 @@ public class DnsOperator {
         }else {this.runMode = runMode;}
     }
 
+    private void addShutdownCmd(String cmd){this.cmdList.add(cmd);}
+
     private LookupBuilder generateLookuper(){
         LookupBuilder myLookup = myLookup = new LookupBuilder(this.dnsServerIp, this.dnsQuestion);;
         myLookup.setRecordType(this.recordType);
@@ -132,7 +138,18 @@ public class DnsOperator {
         this.threadList = new ArrayList<Thread>();
     }
 
+    private void configIpAddress(){
+        String outInt = TalkToSystem.getOutInterface(this.dnsServerIp);
+        Iterator<String> srcIpIt = this.srcIpAddress.iterator();
+        String delCmd = null;
+        while (srcIpIt.hasNext()){
+            delCmd = TalkToSystem.configIpAddress(srcIpIt.next(), outInt);
+            this.addShutdownCmd(delCmd);
+        }
+    }
+
     public void generateThreads(){
+        BaseFunction.dumpInfoFmt("Starting to generate threads...");
         this.clearThreadList();
         LookupBuilder myLookup = this.generateLookuper();
         Message myMessage = myLookup.buildMessage();
@@ -149,6 +166,9 @@ public class DnsOperator {
             }
         }else if(isSrcIpEmpty == false && isSrcPortEmpty == false){
             // Has IP, Has Port
+            BaseFunction.dumpInfoFmt("Setting the IP addresses...");
+            this.configIpAddress();
+            BaseFunction.dumpInfoFmt("The IP addresses have been configured.");
             Iterator<String> srcIpIt = this.srcIpAddress.iterator();
             Iterator<Integer> srcPortIt = this.srcPort.iterator();
             DnsRun myDnsRun;
@@ -174,6 +194,9 @@ public class DnsOperator {
 
         }else if(isSrcIpEmpty == false && isSrcPortEmpty == true){
             // Has IP, No Port
+            BaseFunction.dumpInfoFmt("Setting the IP addresses...");
+            this.configIpAddress();
+            BaseFunction.dumpInfoFmt("The IP addresses have been configured.");
             myLookup.setSrcPort(0);
             Iterator<String> srcIpIt = this.srcIpAddress.iterator();
             DnsRun myDnsRun;
@@ -228,42 +251,6 @@ public class DnsOperator {
                 BaseFunction.dumpInfo("The main thread meets InterruptedException!");
             }
         }
-    }
-
-
-
-
-
-    public static void main(String [] args) {
-        //LookupBuilder myLookup = new LookupBuilder("172.30.154.52", "app1.testglb.com");
-
-        LookupBuilder myLookup = new LookupBuilder("8.8.8.8", "www.163.com");
-        Message myMessage = myLookup.buildMessage();
-        Resolver myResolver = myLookup.buildResolver();
-
-        DnsRun a = new DnsRunNormal(myMessage, myResolver);
-        Thread [] myThreads = new Thread[1];
-        for (int aa=0; aa<1; aa++){
-            myThreads[aa] = new Thread(a);
-        }
-
-        for (Thread nn: myThreads){
-            nn.start();
-        }
-
-        for (Thread nn: myThreads){
-            try {
-                nn.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-
-
-
-
-
     }
 
 
