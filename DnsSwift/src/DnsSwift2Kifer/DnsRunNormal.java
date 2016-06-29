@@ -57,8 +57,9 @@ public class DnsRunNormal extends DnsRun {
     public void run(){
         for (int i=1; i<=totalRequests; i++){
             try {
-                if (this.debugMode == true){BaseFunction.dumpInfo("Sending the DNS request...");}
+                //if (this.debugMode == true){BaseFunction.dumpInfo("Sending the DNS request...");}
                 Message responseMessage = this.resolver.send(this.requestMessage);
+                //System.out.println("Sending DNS request over.");
                 this.normalHandleResponse(responseMessage);
             } catch (IOException e) {
                 if (this.debugMode == true){e.printStackTrace();}

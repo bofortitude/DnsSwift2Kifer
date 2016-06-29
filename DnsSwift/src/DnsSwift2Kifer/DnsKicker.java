@@ -152,7 +152,7 @@ public class DnsKicker {
 
     private void showHelp(){
         HelpFormatter helpMessage = new HelpFormatter();
-        helpMessage.printHelp("./DnsSwift2Kifer.sh <DNS Server IP> <Domain Name> [Options]", this.myOptions);
+        helpMessage.printHelp("\n./DnsSwift2Kifer.sh <DNS Server IP> <Domain Name> [Options]\n", this.myOptions);
         System.exit(1);
     }
 
@@ -251,22 +251,34 @@ public class DnsKicker {
 
     }
 
+    public void generateThreads(){
+        this.myDnsOperator.generateThreads();
+    }
+
     public void startThreads(){
         this.myDnsOperator.startThreads();
     }
 
     public void joinThreads(){
-        this.joinThreads();
+        this.myDnsOperator.joinThreads();
     }
 
 
     public static void main(String [] args){
 
-        //String[] myArgs = new String[]{ "1.1.1.1", "80", "--tcp", "-id", "899", "-d", "5353"};
-        DnsKicker kicker = new DnsKicker(args);
+        //String[] myArgs = new String[]{"8.8.8.8", "www.163.com", "-debug"};
         //DnsKicker kicker = new DnsKicker(myArgs);
+
+        DnsKicker kicker = new DnsKicker(args);
         kicker.parseArgs();
         kicker.setArgs();
+        if (kicker.myCLI.hasOption("debug")){
+            BaseFunction.dumpInfo("\nHere are all the parameters in DnsOperator:");
+            kicker.myDnsOperator.showAllParameters();
+            BaseFunction.dumpInfo("");
+        }
+
+        kicker.generateThreads();
         kicker.startThreads();
         kicker.joinThreads();
 

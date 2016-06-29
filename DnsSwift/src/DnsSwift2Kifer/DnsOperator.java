@@ -148,6 +148,36 @@ public class DnsOperator {
         }
     }
 
+    public void showAllParameters(){
+        BaseFunction.dumpInfo("dnsServerIp="+dnsServerIp);
+        BaseFunction.dumpInfo("dnsQuestion="+dnsQuestion);
+        BaseFunction.dumpInfo("dnsServerPort="+dnsServerPort);
+        BaseFunction.dumpInfo("dnsTimeout="+dnsTimeout);
+        BaseFunction.dumpInfo("tcpEnable="+tcpEnable);
+        BaseFunction.dumpInfo("ignoreTruncation="+ignoreTruncation);
+        BaseFunction.dumpInfo("requestId="+requestId);
+        BaseFunction.dumpInfo("recordType="+recordType);
+        BaseFunction.dumpInfo("requestDclass="+requestDclass);
+        BaseFunction.dumpInfo("requestsOpcode="+requestOpcode);
+        BaseFunction.dumpInfo("requestFlagRD="+requestFlagRD);
+        BaseFunction.dumpInfo("requestFlagAA="+requestFlagAA);
+        BaseFunction.dumpInfo("requestFlagAD="+requestFlagAD);
+        BaseFunction.dumpInfo("requestFlagCD="+requestFlagCD);
+        BaseFunction.dumpInfo("requestWithAdditional="+requestWithAdditional);
+
+        BaseFunction.dumpInfo("srcIpAddress="+srcIpAddress);
+        BaseFunction.dumpInfo("srcPort="+srcPort);
+
+        BaseFunction.dumpInfo("threadsTotal="+threadsTotal);
+        BaseFunction.dumpInfo("totalRequests="+totalRequests);
+        BaseFunction.dumpInfo("sleepTime="+sleepTime);
+        BaseFunction.dumpInfo("debugMode="+debugMode);
+        BaseFunction.dumpInfo("runMode="+runMode);
+
+        BaseFunction.dumpInfo("threadList="+threadList);
+        BaseFunction.dumpInfo("oldThreadList="+oldThreadList);
+    }
+
     public void generateThreads(){
         BaseFunction.dumpInfoFmt("Starting to generate threads...");
         this.clearThreadList();
@@ -211,6 +241,9 @@ public class DnsOperator {
 
         }
 
+        BaseFunction.dumpInfoFmt("All the threads have been generated.");
+        if (this.debugMode == true){BaseFunction.dumpInfo("Here is the thread list:\n"+this.threadList);}
+
     }
 
     public void interruptAllThreads(){
@@ -235,13 +268,19 @@ public class DnsOperator {
     }
 
     public void startThreads(){
+        BaseFunction.dumpInfoFmt("Start all the threads...");
         Iterator<Thread> it = this.threadList.iterator();
         while (it.hasNext()){
-            it.next().start();
+            Thread currentThread = it.next();
+            if (this.debugMode == true){BaseFunction.dumpInfo("Starting thread "+currentThread);}
+            currentThread.start();
+            if (this.debugMode == true){BaseFunction.dumpInfo("Start thread "+currentThread+" over.");}
         }
+        BaseFunction.dumpInfoFmt("All the threads have been started.");
     }
 
     public void joinThreads()  {
+        BaseFunction.dumpInfoFmt("Join all the threads...");
         Iterator<Thread> it = this.threadList.iterator();
         while (it.hasNext()){
             try {
