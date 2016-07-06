@@ -65,27 +65,56 @@ public class DnsKicker {
         }
     }
 
-    private List<String> getSrcIpAddress(String argName){
+    private List<String> getSrcIpAddress(){
+        String argName = "source-address";
         List<String> result = new ArrayList<String>();
         if (this.myCLI.hasOption(argName)){
+            String originalSrcAddressStr = this.myCLI.getOptionValue(argName);
+            if (originalSrcAddressStr.indexOf("=") == -1){
+                // type -> 10.76.1.1,10.77.2.1,10.88.1.1-10.88.2.10,10.100.1.3
+                result = IpNetUtils.genIpRangeList(originalSrcAddressStr);
 
-
-
-
-        }else {result = new ArrayList<String>();}
-
+            }else {
+                // type -> 10.76.1.0/24=10
+                String [] subnetAndPrefixArray = originalSrcAddressStr.split("=");
+                String mySubnet = subnetAndPrefixArray[0];
+                int prefixNum = Integer.parseInt(subnetAndPrefixArray[1]);
+                result = IpNetUtils.genIpPrefixRandomList(mySubnet, prefixNum);
+            }
+        }else {return result;}
         return result;
-
     }
 
-    private List<Integer> getSrcPort(String argName){
+    private List<Integer> genConsecutivePort(int start, int end){
+        List<Integer> result = new ArrayList<Integer>();
+        if (end < start){
+            return result;
+        }else {
+            for (int i=start; i<=end; i++){
+                result.add(i);
+            }
+        }
+        return result;
+    }
+
+    private List<Integer> getSrcPort(){
+        String argName = "source-port";
         List<Integer> result = new ArrayList<Integer>();
         if (this.myCLI.hasOption(argName)){
-
+            String originalSrcPortString = this.myCLI.getOptionValue(argName);
+            String [] portFieldArray = originalSrcPortString.split(",");
+            for (String i : portFieldArray){
+                if (i.indexOf("-") == -1){
+                    result.add(Integer.parseInt(i));
+                }else {
+                    int startNum = Integer.parseInt(i.split("-")[0]);
+                    int endNum = Integer.parseInt(i.split("-")[1]);
+                    result.addAll(this.genConsecutivePort(startNum, endNum));
+                }
+            }
         }else {
-            result = new ArrayList<Integer>();
+            return result;
         }
-
         return result;
     }
 
@@ -95,7 +124,7 @@ public class DnsKicker {
         addOptionAndClassify("c", "concurrent", true, "Specify the concurrent threads number.");
         addOptionAndClassify("r", "requests", true, "Specify the requests number per thread.");
         addOptionAndClassify("i", "interval", true, "Specify the interval between reuqests, default is 1.");
-        addOptionAndClassify("s", "source-address", true, "Specify the source address. Format: \"[10.76.1.0/24](10)\" or \"10.76.1.1,10.77.2.1,10.88.1.1-10.88.2.10,10.100.1.3\".");
+        addOptionAndClassify("s", "source-address", true, "Specify the source address. "+"\nFormat:\n \"10.76.1.0/24=10\" "+" \n\"10.76.1.1,10.77.2.1,10.88.1.1-10.88.2.10,10.100.1.3\".");
         addOptionAndClassify("p", "source-port", true, "Specify the source port. Format: \"2234,4532,5423-5490,2452\".");
         addOptionAndClassify("d", "dns-port", true, "Specify the dns port, default is 53.");
         addOptionAndClassify("n", "timeout", true, "Timeout or every request, default is 5s.");
@@ -152,7 +181,13 @@ public class DnsKicker {
 
     private void showHelp(){
         HelpFormatter helpMessage = new HelpFormatter();
-        helpMessage.printHelp("\n./DnsSwift2Kifer.sh <DNS Server IP> <Domain Name> [Options]\n", this.myOptions);
+        //helpMessage.printHelp("\n./DnsSwift2Kifer.sh <DNS Server IP> <Domain Name> [Options] ", this.myOptions);
+        helpMessage.printHelp(100,
+                "\n./DnsSwift2Kifer.sh <DNS Server IP> <Domain Name> [Options]\n\n",
+                "Options:",
+                this.myOptions,
+                "\nMaintainer: bofei@fortinet.com | FortiADC QA",
+                false);
         System.exit(1);
     }
 
@@ -215,8 +250,8 @@ public class DnsKicker {
         requestFlagAD = this.getBooleanArgValue("adflag");
         requestFlagCD = this.getBooleanArgValue("cdflag");
         if (this.getBooleanArgValue("noAdditional") == true){requestWithAdditional = false;}
-        srcIpAddress = this.getSrcIpAddress("source-address");
-        srcPort = this.getSrcPort("source-port");
+        srcIpAddress = this.getSrcIpAddress();
+        srcPort = this.getSrcPort();
         threadsTotal = this.getIntArgValue("concurrent", threadsTotal);
         totalRequests = this.getIntArgValue("requests", totalRequests);
         if (this.myCLI.hasOption("interval")){
@@ -266,10 +301,11 @@ public class DnsKicker {
 
     public static void main(String [] args){
 
-        //String[] myArgs = new String[]{"8.8.8.8", "www.163.com", "-debug"};
-        //DnsKicker kicker = new DnsKicker(myArgs);
+        String[] myArgs = new String[]{"8.8.8.8", "www.163.com", "-h"};
+        DnsKicker kicker = new DnsKicker(myArgs);
 
-        DnsKicker kicker = new DnsKicker(args);
+        //DnsKicker kicker = new DnsKicker(args);
+
         kicker.parseArgs();
         kicker.setArgs();
         if (kicker.myCLI.hasOption("debug")){

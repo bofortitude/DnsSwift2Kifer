@@ -119,11 +119,11 @@ public class DnsOperator {
     private DnsRun generateDnsRun(Message myMessage, Resolver myResolver){
         DnsRun myDnsRun = null;
 
-        if (this.runMode == "Normal"){
+        if (this.runMode.equals("Normal")){
             myDnsRun = new DnsRunNormal(myMessage, myResolver);
-        }else if(this.runMode == "Statistics"){
+        }else if(this.runMode.equals("Statistics")){
             myDnsRun = new DnsRunStatistics(myMessage, myResolver);
-        }else if(this.runMode == "Full"){
+        }else if(this.runMode.equals("Full")){
             myDnsRun = new DnsRunFull(myMessage, myResolver);
         }
         myDnsRun.setDebugMode(this.debugMode);
