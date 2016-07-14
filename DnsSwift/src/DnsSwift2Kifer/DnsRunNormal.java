@@ -54,7 +54,7 @@ public class DnsRunNormal extends DnsRun {
         }
     }
 
-    public void run(){
+    private void sendRegularRecordRequest(){
         for (int i=1; i<=totalRequests; i++){
             try {
                 //if (this.debugMode == true){BaseFunction.dumpInfo("Sending the DNS request...");}
@@ -73,7 +73,37 @@ public class DnsRunNormal extends DnsRun {
                 BaseFunction.dumpInfo("The thread sleep meets InterruptedException!");
             }
         }
+    }
 
+    private void sendOtherRecordRequest(){
+        for (int j=1; j <= totalRequests; j++){
+            try {
+                Message responseMessage = this.resolver.send(this.requestMessage);
+                BaseFunction.dumpInfo(responseMessage.toString()+"\n");
+            } catch (IOException e) {
+                if (this.debugMode == true){e.printStackTrace();}
+                BaseFunction.dumpInfo("The DNS sending meets IOException!");
+            }
+
+            try {
+                if (j != totalRequests){Thread.sleep(this.sleepTime);}
+            } catch (InterruptedException e) {
+                if (this.debugMode == true){e.printStackTrace();}
+                BaseFunction.dumpInfo("The thread sleep meets InterruptedException!");
+            }
+
+        }
+
+    }
+
+    public void run(){
+
+        int currentRecordType = this.requestMessage.getQuestion().getType();
+        if (currentRecordType != Type.value("A") && currentRecordType != Type.value("AAAA")){
+            this.sendOtherRecordRequest();
+        }else{
+            this.sendRegularRecordRequest();
+        }
     }
 
 }

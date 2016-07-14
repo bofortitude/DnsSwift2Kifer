@@ -3,12 +3,11 @@ package DnsSwift2Kifer;
 import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
+
+import com.github.jgonian.ipmath.*;
 
 /**
  * Created by bofei on 7/3/2016.
@@ -21,7 +20,7 @@ public class IpLibHandler {
     static String preDefineIspFilePath = filePath+"/pre-define-isp";
     static String geoSubFolder = filePath+"/geo_ip_sub";
     static String ipv4GeoIpSub = geoSubFolder+"/ipv4";
-    static String ipv6GeoIpSub = geoSubFolder+"ipv6";
+    static String ipv6GeoIpSub = geoSubFolder+"/ipv6";
 
     public static String getPath(Class dstClass) {
         // Run this method like: IpLibHandler.getPath(DnsKicker.class)
@@ -271,7 +270,16 @@ public class IpLibHandler {
             tmpfile.mkdir();
         }
 
-        System.out.println(ipv4MapFilePath);
+        File tmpIpv4File = new File(ipv4GeoIpSub);
+        if (tmpIpv4File.isDirectory() == false){
+            tmpIpv4File.mkdir();
+        }
+
+        File tmpIpv6File = new File(ipv6GeoIpSub);
+        if (tmpIpv6File.isDirectory() == false){
+            tmpIpv6File.mkdir();
+        }
+
         File myFile = new File(ipv4MapFilePath);
         InputStreamReader reader = null;
         try {
@@ -281,19 +289,125 @@ public class IpLibHandler {
         }
         BufferedReader buffer = new BufferedReader(reader);
         String line = "";
-        int count = 1;
+        String lastLineIpValue = null;
+        String lastLineCountryNum = null;
+        ConcurrentHashMap<String, List<String>> countryIdToIpRangeIpv4 = new ConcurrentHashMap<>();
         while (line != null){
             try {
                 line = buffer.readLine();
-                System.out.println(line);
-                count ++;
-                if (count >= 20){
-                    break;
+                if (line == null){continue;}
+                String [] lineStringArray = line.split(";");
+                if (lineStringArray.length < 4){continue;}
+                String currentLineIpValue = lineStringArray[0].trim();
+                String currentLineCountryNum = lineStringArray[2].trim();
+                if (lastLineIpValue == null && lastLineCountryNum == null){
+                    lastLineIpValue = currentLineIpValue;
+                    lastLineCountryNum = currentLineCountryNum;
+                    continue;
                 }
+
+                Long currentLineIpValueMinusLong = Long.parseLong(currentLineIpValue)-1;
+                String currentLineIpValueMinus = currentLineIpValueMinusLong.toString();
+                if (countryIdToIpRangeIpv4.containsKey(lastLineCountryNum)){
+                    countryIdToIpRangeIpv4.get(lastLineCountryNum).add(lastLineIpValue+" "+currentLineIpValueMinus);
+                }else {
+                    List<String> newList = new ArrayList<String>();
+                    newList.add(lastLineIpValue+" "+currentLineIpValueMinus);
+                    countryIdToIpRangeIpv4.put(lastLineCountryNum, newList);
+                }
+                lastLineCountryNum = currentLineCountryNum;
+                lastLineIpValue = currentLineIpValue;
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+        for (Map.Entry<String, List<String>> e: countryIdToIpRangeIpv4.entrySet()){
+            File file = new File(ipv4GeoIpSub+"/"+e.getKey());
+            if (file.exists()){file.delete();}
+            FileWriter fw = null;
+            BufferedWriter bw = null;
+            Iterator<String> it = e.getValue().iterator();
+            try {
+                fw = new FileWriter(file);
+                bw = new BufferedWriter(fw);
+                while (it.hasNext()){
+                    bw.write(it.next());
+                    bw.newLine();
+                }
+                bw.flush();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }finally {
+                try {
+                    bw.close();
+                    fw.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+
+        File fileV6 = new File(ipv6MapFilePath);
+        InputStreamReader readerV6 = null;
+        try {
+            readerV6 = new InputStreamReader(new FileInputStream(fileV6));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        BufferedReader bufferV6 = new BufferedReader(readerV6);
+        String lineV6 = "";
+        ConcurrentHashMap<String, List<String>> countryToIpV6 = new ConcurrentHashMap<>();
+        try {
+            while ((lineV6 = bufferV6.readLine()) != null){
+                String [] currentLineArray = lineV6.split("\\s+");
+                if (currentLineArray.length < 2){continue;}
+                String currentCountryId = currentLineArray[2].trim();
+                String currentIpRangeString = currentLineArray[0].trim()+" "+currentLineArray[1].trim();
+                if (countryToIpV6.containsKey(currentCountryId)){
+                    countryToIpV6.get(currentCountryId).add(currentIpRangeString);
+                }else {
+                    countryToIpV6.put(currentCountryId, new ArrayList<String>());
+                    countryToIpV6.get(currentCountryId).add(currentIpRangeString);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (Map.Entry<String, List<String>> e: countryToIpV6.entrySet()){
+            File file = new File(ipv6GeoIpSub+"/"+e.getKey());
+            if (file.exists()){file.delete();}
+            FileWriter fw = null;
+            BufferedWriter bw = null;
+            Iterator<String> it = e.getValue().iterator();
+            try {
+                fw = new FileWriter(file);
+                bw = new BufferedWriter(fw);
+                while (it.hasNext()){
+                    bw.write(it.next());
+                    bw.newLine();
+                }
+                bw.flush();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }finally {
+                try {
+                    bw.close();
+                    fw.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+
+
+
+
+
+
+
 
 
 
@@ -305,29 +419,99 @@ public class IpLibHandler {
         List<String> result = new ArrayList<String>();
         String countryId = IpLibHandler.getCountryId(category);
         if (countryId == null){return result;}
+        String countryIndex = IpLibHandler.getCountryId(category);
+        if (countryIndex == null){return result;}
 
         if (isIpv6 == false){
             // IPv4
-            if (IpLibHandler.isFolderExists(geoSubFolder) == false){
+            if (IpLibHandler.isFolderExists(ipv4GeoIpSub) == false){IpLibHandler.splitGeoFiles();}
+            if (IpLibHandler.isFileExists(ipv4GeoIpSub+"/"+countryIndex)){IpLibHandler.splitGeoFiles();}
 
+            File file = new File(ipv4GeoIpSub+"/"+countryIndex);
+            List<String> ipv4List = new ArrayList<>();
+            FileReader fr = null;
+            BufferedReader br =null;
+            try {
+                fr = new FileReader(file);
+                br = new BufferedReader(fr);
+                String line = "";
+                try {
+                    while ((line = br.readLine()) != null){
+                        ipv4List.add(line);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }finally {
+
+                    try {
+                        br.close();
+                        fr.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             }
 
+            Random random = new Random();
+
+            for (int i=1; i<=total; i++){
+                int randomLineNum = random.nextInt(ipv4List.size());
+                String selectedLine = ipv4List.get(randomLineNum);
+                String startIpStr = selectedLine.split("\\s+")[0].trim();
+                String endIpStr = selectedLine.split("\\s+")[1].trim();
+                result.add(IpNetUtils.genIpv4AddressFromRange(startIpStr, endIpStr));
+            }
 
         }else {
             // IPv6
+            if (IpLibHandler.isFolderExists(ipv6GeoIpSub) == false){IpLibHandler.splitGeoFiles();}
+            if (IpLibHandler.isFileExists(ipv6GeoIpSub+"/"+countryIndex)){IpLibHandler.splitGeoFiles();}
+            File file = new File(ipv6GeoIpSub+"/"+countryIndex);
+            List<String> ipv6List = new ArrayList<>();
+            FileReader fr = null;
+            BufferedReader br =null;
+            try {
+                fr = new FileReader(file);
+                br = new BufferedReader(fr);
+                String line = "";
+                try {
+                    while ((line = br.readLine()) != null){
+                        ipv6List.add(line);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }finally {
+
+                try {
+                    br.close();
+                    fr.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Random random = new Random();
+
+            for (int i=1; i<=total; i++){
+                int randomLineNum = random.nextInt(ipv6List.size());
+                String selectedLine = ipv6List.get(randomLineNum);
+                String startIpStr = selectedLine.split("\\s+")[0].trim();
+                String endIpStr = selectedLine.split("\\s+")[1].trim();
+                result.add(IpNetUtils.genIpv6AddressFromRange(startIpStr, endIpStr));
+            }
         }
-
-
-
-
         return result;
     }
 
-
-
-
     public static List<String> getIpList(String libType, String category, int total, boolean isIpv6){
+        // libType -> "ISP", "Country"
+
         List<String> result = new ArrayList<String>();
         if (libType.equals("ISP")){
             if (IpLibHandler.isFileExists(preDefineIspFilePath) == false){return result;}
@@ -343,21 +527,6 @@ public class IpLibHandler {
         }else {
             return result;
         }
-    }
-
-
-
-
-
-
-
-
-    public static void main(String [] args){
-
-        IpLibHandler.splitGeoFiles();
-
-
-
     }
 
 

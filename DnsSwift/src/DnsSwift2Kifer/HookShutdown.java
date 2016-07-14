@@ -16,7 +16,7 @@ public class HookShutdown extends Thread{
     public void runCmd(){
         Iterator<String> it = this.cmdList.iterator();
         while (it.hasNext()){
-            TalkToSystem.runCmd(it.next());
+            TalkToSystem2.runCmd(it.next(), true);
         }
         this.cmdList = new ArrayList<String>();
     }

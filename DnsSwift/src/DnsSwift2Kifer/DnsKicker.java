@@ -1,5 +1,6 @@
 package DnsSwift2Kifer;
 
+import com.github.jgonian.ipmath.Ipv4;
 import org.apache.commons.cli.*;
 
 import java.util.ArrayList;
@@ -65,8 +66,12 @@ public class DnsKicker {
         }
     }
 
-    private List<String> getSrcIpAddress(){
+    private List<String> getSrcIpAddress(boolean isDstServerIpv6){
         String argName = "source-address";
+        String ispAddressArgName = "ispAddress";
+        String geoAddressArgName = "geoAddress";
+        String libTotalAddresses = "totalAddress";
+
         List<String> result = new ArrayList<String>();
         if (this.myCLI.hasOption(argName)){
             String originalSrcAddressStr = this.myCLI.getOptionValue(argName);
@@ -81,7 +86,20 @@ public class DnsKicker {
                 int prefixNum = Integer.parseInt(subnetAndPrefixArray[1]);
                 result = IpNetUtils.genIpPrefixRandomList(mySubnet, prefixNum);
             }
-        }else {return result;}
+        }
+
+        int libTotalAddressNum = this.getIntArgValue(libTotalAddresses, 1);
+
+        if (this.myCLI.hasOption(ispAddressArgName)){
+            String ispAddressString = this.myCLI.getOptionValue(ispAddressArgName);
+            result.addAll(IpLibHandler.getIpList("ISP", ispAddressString, libTotalAddressNum, isDstServerIpv6));
+        }
+
+        if (this.myCLI.hasOption(geoAddressArgName)){
+            String geoAddressString = this.myCLI.getOptionValue(geoAddressArgName);
+            result.addAll(IpLibHandler.getIpList("Country", geoAddressString, libTotalAddressNum, isDstServerIpv6));
+        }
+
         return result;
     }
 
@@ -136,9 +154,9 @@ public class DnsKicker {
         addOptionAndClassify("optionCode", true, "Specify the option code, default is \"QUERY\".");
         addOptionAndClassify("ignoreTruncation", false, "The \"TC\" flag will be ignored once this option is set.");
         addOptionAndClassify("debug", false, "Enable the debug mode.");
-        //addOptionAndClassify("ispAddress", true, "Specify the source addresses from ISP predefined base. Format: \"china-telecom Anhui\" or \"any Henan\".");
-        //addOptionAndClassify("geoAddress", true, "Specify the source addresses from GEO IP library. Format: --geo-address \"Andorra\".");
-        //addOptionAndClassify("totalAddress", true, "Specify total isp address or total geo address, default is 1.");
+        addOptionAndClassify("ispAddress", true, "Specify the source addresses from ISP predefined base. Format: \"china-telecom,Anhui\" or \"any,Henan\".");
+        addOptionAndClassify("geoAddress", true, "Specify the source addresses from GEO IP library. Format: -geo-address \"Andorra\".");
+        addOptionAndClassify("totalAddress", true, "Specify total isp address or total geo address, default is 1.");
         addOptionAndClassify("id", true, "Specify the request message ID.");
         addOptionAndClassify("noRecurse", false, "Unset the recurse bit once it is taken.");
         addOptionAndClassify("noAdditional", false, "Unset the additional record for request.");
@@ -236,6 +254,12 @@ public class DnsKicker {
         boolean debugMode = false;
         String runMode = "Normal";  // Valid: "Normal", "Statistics", "Full"
 
+        boolean isDstServerIpv6;
+        if (dnsServerIp.indexOf(":") == -1){
+            isDstServerIpv6 = false;
+        }else {
+            isDstServerIpv6 = true;
+        }
         this.myDnsOperator = new DnsOperator(dnsServerIp, dnsQuestion);
         dnsServerPort = this.getIntArgValue("dns-port", dnsServerPort);
         dnsTimeout = this.getIntArgValue("timeout", dnsTimeout);
@@ -250,7 +274,7 @@ public class DnsKicker {
         requestFlagAD = this.getBooleanArgValue("adflag");
         requestFlagCD = this.getBooleanArgValue("cdflag");
         if (this.getBooleanArgValue("noAdditional") == true){requestWithAdditional = false;}
-        srcIpAddress = this.getSrcIpAddress();
+        srcIpAddress = this.getSrcIpAddress(isDstServerIpv6);
         srcPort = this.getSrcPort();
         threadsTotal = this.getIntArgValue("concurrent", threadsTotal);
         totalRequests = this.getIntArgValue("requests", totalRequests);
@@ -301,15 +325,16 @@ public class DnsKicker {
 
     public static void main(String [] args){
 
-        String[] myArgs = new String[]{"8.8.8.8", "www.163.com", "-h"};
-        DnsKicker kicker = new DnsKicker(myArgs);
+        //String[] myArgs = new String[]{"8.8.8.8", "www.163.com", "-h"};
+        //DnsKicker kicker = new DnsKicker(myArgs);
 
-        //DnsKicker kicker = new DnsKicker(args);
+
+        DnsKicker kicker = new DnsKicker(args);
 
         kicker.parseArgs();
         kicker.setArgs();
         if (kicker.myCLI.hasOption("debug")){
-            BaseFunction.dumpInfo("\nHere are all the parameters in DnsOperator:");
+            BaseFunction.dumpInfoFmt("Here are all the parameters in DnsOperator:");
             kicker.myDnsOperator.showAllParameters();
             BaseFunction.dumpInfo("");
         }

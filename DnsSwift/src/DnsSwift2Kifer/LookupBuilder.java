@@ -29,6 +29,7 @@ public class LookupBuilder {
     private boolean requestFlagAD = false;
     private boolean requestFlagCD = false;
     private boolean requestWithAdditional = true;
+    private boolean debugMode = false;
 
 
 
@@ -77,8 +78,13 @@ public class LookupBuilder {
 
     public void setRequestWithAdditional(boolean requestWithAdditional){this.requestWithAdditional = requestWithAdditional;}
 
+    public void setDebugMode (boolean debugMode){this.debugMode = debugMode;}
+
     private Record genRecord(){
         try {
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("Starting to generate request Record...");
+            }
             Name domainName = new Name(this.dnsQuestion);
             if (domainName.isAbsolute() == false){
                 this.dnsQuestion = this.dnsQuestion+".";
@@ -89,35 +95,66 @@ public class LookupBuilder {
             int myDclass = DClass.value(this.requestDclass);
             if (myDclass == -1){myDclass = DClass.value("IN");}
 
-            return Record.newRecord(domainName, myRecordType, myDclass);
+            Record finalResult = Record.newRecord(domainName, myRecordType, myDclass);
+
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("Generating request Record over.");
+            }
+
+            return finalResult;
 
         } catch (TextParseException e) {
             e.printStackTrace();
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("The request Record failed to be generated!");
+            }
             return null;
         }
 
     }
 
     private Header genHeader(){
+        if (this.debugMode){
+            BaseFunction.dumpInfoFmt("Starting to generate request Header...");
+        }
         Header myHeader;
-        if (this.requestId != 0){ myHeader = new Header(this.requestId); }else { myHeader = new Header(); }
+        if (this.requestId != 0){myHeader = new Header(this.requestId);
+        }else {myHeader = new Header();}
 
         int myOpcode = Opcode.value(this.requestOpcode);
         if (myOpcode == -1){ myOpcode = Opcode.value("QUERY"); }
 
-        int myFlags;
-        if (this.requestFlagRD == true){ myFlags = Flags.value("RD"); }else { myFlags = 0; }
-        if (this.requestFlagAA == true){ myFlags |= Flags.value("AA"); }
-        if (this.requestFlagAD == true){ myFlags |= Flags.value("AD"); }
-        if (this.requestFlagCD == true){ myFlags |= Flags.value("CD"); }
+
+        if (this.requestFlagRD == true){
+            myHeader.setFlag(Flags.value("RD"));
+            //myFlags = Flags.value("RD");
+        }
+        if (this.requestFlagAA == true){
+            myHeader.setFlag(Flags.value("AA"));
+            //myFlags |= Flags.value("AA");
+        }
+        if (this.requestFlagAD == true){
+            myHeader.setFlag(Flags.value("AD"));
+            //myFlags |= Flags.value("AD");
+        }
+        if (this.requestFlagCD == true){
+            myHeader.setFlag(Flags.value("CD"));
+            //myFlags |= Flags.value("CD");
+        }
 
         myHeader.setOpcode(myOpcode);
-        myHeader.setFlag(myFlags);
+
+        if (this.debugMode){
+            BaseFunction.dumpInfoFmt("Generating request Header over.");
+        }
 
         return myHeader;
     }
 
     public Message buildMessage(){
+        if (this.debugMode){
+            BaseFunction.dumpInfoFmt("Starting to build request Message...");
+        }
         Message requestMessage;
         if (this.requestId != 0){
             requestMessage = new Message(this.requestId);
@@ -131,26 +168,48 @@ public class LookupBuilder {
         requestMessage.addRecord(myRecord, Section.QUESTION);
         if (this.requestWithAdditional == true){requestMessage.addRecord(new OPTRecord(4096, 0, 0), Section.ADDITIONAL);}
 
+        if (this.debugMode){
+            BaseFunction.dumpInfoFmt("Request Message is:");
+            BaseFunction.dumpInfo(requestMessage.toString());
+            BaseFunction.dumpInfo("");
+        }
+
         return requestMessage;
     }
 
     public Resolver buildResolver(){
         try {
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("Starting to build Resolver...");
+            }
             SimpleResolver myResolver;
             myResolver = new SimpleResolver();
 
             myResolver.setAddress(new InetSocketAddress(this.dnsServerIp, this.dnsServerPort));
             if (this.srcIpAddress != "0.0.0.0" || this.srcPort != 0){
                 myResolver.setLocalAddress(new InetSocketAddress(this.srcIpAddress, this.srcPort));
+                if (this.debugMode){BaseFunction.dumpInfoFmt("The local address has been set: localAddress="+this.srcIpAddress+" localPort="+this.srcPort);}
             }
             myResolver.setTimeout(this.dnsTimeout);
             myResolver.setTCP(this.tcpEnable);
             myResolver.setIgnoreTruncation(this.ignoreTruncation);
 
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("Resolver object has been created: dnsServerIp="+this.dnsServerIp+" dnsServerPort="+this.dnsServerPort);
+                BaseFunction.dumpInfoFmt("Resolver timeout has been set: timeout="+this.dnsTimeout);
+                BaseFunction.dumpInfoFmt("Resolver tcp status has been set: tcpEnable="+this.tcpEnable);
+                BaseFunction.dumpInfoFmt("Resolver ignoreTruncation status has been set: ignoreTruncation:"+this.ignoreTruncation);
+                BaseFunction.dumpInfoFmt("Generating resolver over.");
+                BaseFunction.dumpInfo("");
+            }
+
             return myResolver;
 
         } catch (UnknownHostException e) {
             e.printStackTrace();
+            if (this.debugMode){
+                BaseFunction.dumpInfoFmt("The resolver failed to be generated!");
+            }
             return null;
         }
 

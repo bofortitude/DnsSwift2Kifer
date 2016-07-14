@@ -1,12 +1,8 @@
 package DnsSwift2Kifer;
 
 import com.github.jgonian.ipmath.*;
-
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by bofei on 6/29/2016.
@@ -129,18 +125,55 @@ public class IpNetUtils {
 
         }else {
             // IPv6
+
             String modifiedPrefixString = IpNetUtils.getSubnetAndPrefix(ipPrefixString, true);
             Ipv6Range subnet = Ipv6Range.parse(modifiedPrefixString);
-            int startIpNum = subnet.start().asBigInteger().intValue();
-            int endIpNum = subnet.end().asBigInteger().intValue();
+            BigInteger startIpNumValue = subnet.start().asBigInteger();
+            BigInteger endIpNumValue = subnet.end().asBigInteger();
+            //BigInteger minusValue = endIpNumValue.add(startIpNumValue.negate());
+            BigInteger minusValue = endIpNumValue.subtract(startIpNumValue);
             for (int j=1;j<=total;j++){
                 Random random = new Random();
-                int myIpValue = random.nextInt(endIpNum)%(endIpNum-startIpNum+1)+startIpNum;
-                result.add(Ipv4.of(BigInteger.valueOf(myIpValue)).toString());
+                BigInteger r;
+                do{
+                    r = new BigInteger(minusValue.bitLength(), random);
+                }while (r.compareTo(minusValue) >= 0);
+                result.add(Ipv6.of(r.add(startIpNumValue)).toString());
+
             }
+
         }
 
         return result;
     }
+
+    public static String genIpv4AddressFromRange(String startIpNum, String endIpNum){
+        String result = null;
+        Long startValue = Long.parseLong(startIpNum);
+        Long endValue = Long.parseLong(endIpNum);
+        Random random = new Random();
+        Long selectedIpValue = Math.abs(random.nextLong())%(endValue-startValue)+startValue;
+        result = Ipv4.of(selectedIpValue).toString();
+        return result;
+    }
+
+    public static String genIpv6AddressFromRange(String startIpString, String endIpString){
+        String result = null;
+        BigInteger startIpValue = Ipv6.of(startIpString).asBigInteger();
+        BigInteger endIpValue = Ipv6.of(endIpString).asBigInteger();
+        BigInteger minusValue = endIpValue.add(startIpValue.negate());
+        BigInteger r;
+        Random random = new Random();
+        do{
+            r = new BigInteger(minusValue.bitLength(), random);
+        }while (r.compareTo(minusValue) >= 0);
+        result = Ipv6.of(r.add(startIpValue)).toString();
+
+        return result;
+    }
+
+
+
+
 
 }

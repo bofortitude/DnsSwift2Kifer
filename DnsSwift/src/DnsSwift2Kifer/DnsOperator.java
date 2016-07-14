@@ -7,6 +7,7 @@ import org.xbill.DNS.Resolver;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by bofei on 6/19/2016.
@@ -44,6 +45,8 @@ public class DnsOperator {
 
     private List<Thread> threadList = new ArrayList<Thread>();
     private List<Thread> oldThreadList = new ArrayList<Thread>();
+    private Thread threadCollectStatistics = null;
+    private ConcurrentHashMap<String, Integer> statisticsPrimaryAnswer = new ConcurrentHashMap<>();
 
 
     public DnsOperator(String dnsServerIp, String dnsQuestion){
@@ -113,19 +116,22 @@ public class DnsOperator {
         myLookup.setRequestId(this.requestId);
         myLookup.setRequestWithAdditional(this.requestWithAdditional);
         myLookup.setRequestOpcode(this.requestOpcode);
+        myLookup.setDebugMode(this.debugMode);
         return myLookup;
     }
 
     private DnsRun generateDnsRun(Message myMessage, Resolver myResolver){
         DnsRun myDnsRun = null;
 
-        if (this.runMode.equals("Normal")){
+
+        if (this.runMode.equals("Normal")) {
             myDnsRun = new DnsRunNormal(myMessage, myResolver);
-        }else if(this.runMode.equals("Statistics")){
-            myDnsRun = new DnsRunStatistics(myMessage, myResolver);
-        }else if(this.runMode.equals("Full")){
+        } else if (this.runMode.equals("Statistics")) {
+            myDnsRun = new DnsRunStatistics(myMessage, myResolver, this.statisticsPrimaryAnswer);
+        } else if (this.runMode.equals("Full")) {
             myDnsRun = new DnsRunFull(myMessage, myResolver);
         }
+
         myDnsRun.setDebugMode(this.debugMode);
         myDnsRun.setSleepTime(this.sleepTime);
         myDnsRun.setTotalRequests(this.totalRequests);
@@ -139,11 +145,12 @@ public class DnsOperator {
     }
 
     private void configIpAddress(){
-        String outInt = TalkToSystem.getOutInterface(this.dnsServerIp);
+        if (this.debugMode){BaseFunction.dumpInfoFmt("Starting to configuring the IP address...");}
+        String outInt = TalkToSystem2.getOutInterface(this.dnsServerIp, this.debugMode);
         Iterator<String> srcIpIt = this.srcIpAddress.iterator();
         String delCmd = null;
         while (srcIpIt.hasNext()){
-            delCmd = TalkToSystem.configIpAddress(srcIpIt.next(), outInt);
+            delCmd = TalkToSystem2.configIpAddress(srcIpIt.next(), outInt, this.debugMode);
             this.addShutdownCmd(delCmd);
         }
     }
@@ -186,6 +193,11 @@ public class DnsOperator {
         boolean isSrcIpEmpty = this.srcIpAddress.isEmpty();
         boolean isSrcPortEmpty = this.srcPort.isEmpty();
 
+        if (this.runMode.equals("Statistics")){
+            CollectStatisticsThread myCollectStatisticsThread = new CollectStatisticsThread(this.statisticsPrimaryAnswer, this.threadList);
+            this.threadCollectStatistics = new Thread(myCollectStatisticsThread);
+        }
+
         if (isSrcIpEmpty == true && isSrcPortEmpty == true){
             // No IP,  No Port
             myLookup.setSrcIpAddress("0.0.0.0");
@@ -203,8 +215,10 @@ public class DnsOperator {
             Iterator<Integer> srcPortIt = this.srcPort.iterator();
             DnsRun myDnsRun;
             while (srcIpIt.hasNext()){
+                String currentSrcIp = srcIpIt.next();
                 while (srcPortIt.hasNext()){
-                    myLookup.setSrcIpAddress(srcIpIt.next());
+                    //myLookup.setSrcIpAddress(srcIpIt.next());
+                    myLookup.setSrcIpAddress(currentSrcIp);
                     myLookup.setSrcPort(srcPortIt.next());
                     myDnsRun = this.generateDnsRun(myMessage, myLookup.buildResolver());
                     this.threadList.add(new Thread(myDnsRun));
@@ -242,7 +256,6 @@ public class DnsOperator {
         }
 
         BaseFunction.dumpInfoFmt("All the threads have been generated.");
-        if (this.debugMode == true){BaseFunction.dumpInfo("Here is the thread list:\n"+this.threadList);}
 
     }
 
@@ -269,25 +282,34 @@ public class DnsOperator {
 
     public void startThreads(){
         BaseFunction.dumpInfoFmt("Start all the threads...");
+
         Iterator<Thread> it = this.threadList.iterator();
         while (it.hasNext()){
             Thread currentThread = it.next();
-            if (this.debugMode == true){BaseFunction.dumpInfo("Starting thread "+currentThread);}
+            if (this.debugMode == true){BaseFunction.dumpInfoFmt("Starting thread "+currentThread);}
             currentThread.start();
-            if (this.debugMode == true){BaseFunction.dumpInfo("Start thread "+currentThread+" over.");}
+            if (this.debugMode == true){BaseFunction.dumpInfoFmt("Thread "+currentThread+" is started.");}
         }
-        BaseFunction.dumpInfoFmt("All the threads have been started.");
+
+        if (this.threadCollectStatistics != null){
+            if (this.debugMode){BaseFunction.dumpInfoFmt("Starting thread collectStatistics...");}
+            this.threadCollectStatistics.start();
+            if (this.debugMode){BaseFunction.dumpInfoFmt("Thread collectStatistics is started.");}
+        }
+        if (this.debugMode){BaseFunction.dumpInfoFmt("All the threads have been started.");}
+
     }
 
     public void joinThreads()  {
-        BaseFunction.dumpInfoFmt("Join all the threads...");
+        if (this.debugMode){BaseFunction.dumpInfoFmt("Join all the threads...");}
+
         Iterator<Thread> it = this.threadList.iterator();
         while (it.hasNext()){
             try {
                 it.next().join();
             } catch (InterruptedException e) {
                 if (this.debugMode == true) {e.printStackTrace();}
-                BaseFunction.dumpInfo("The main thread meets InterruptedException!");
+                BaseFunction.dumpInfoFmt("The main thread meets InterruptedException!");
             }
         }
     }
